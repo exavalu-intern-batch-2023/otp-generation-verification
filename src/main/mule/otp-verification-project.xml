@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:twilio="http://www.mulesoft.org/schema/mule/twilio" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/twilio http://www.mulesoft.org/schema/mule/twilio/current/mule-twilio.xsd">
+	<flow name="otp-verification-projectFlow" doc:id="89c6a680-5224-45d8-9595-50ec21a1318a" >
+		<http:listener doc:name="GET/generate-otp" doc:id="dfd9273b-e426-4d04-998c-764a2142fc3e" config-ref="HTTP_Listener_config" path="/generate-otp" allowedMethods="GET"/>
+		<choice doc:name="Choice" doc:id="b7a5acb2-58d1-4048-8575-3fb4bba761d3" >
+			<when expression="#[attributes.headers.emailId?]">
+				<set-variable value="#[attributes.headers.emailId]" doc:name="emailId from header" doc:id="44509bb4-3c17-4c97-8263-9592073245a6" variableName="emailId" />
+				<set-variable value='#[(random() * 100000) as String {format: "0000"}]' doc:name="otpValue" doc:id="7f94624b-ef24-40d8-bff1-13153a266510" variableName="otpValue" />
+				<async doc:name="Async" doc:id="5a870ff1-42a2-4230-8b23-09534a7c490f">
+					<os:store doc:id="2548623a-1a68-4cc0-9711-be30c252517b" objectStore="Object_store" doc:name="otpStoring" key="#[vars.emailId]">
+			<os:value><![CDATA[#[vars.otpValue]]]></os:value>
+		</os:store>
+				</async>
+				<ee:transform doc:name="otp Response" doc:id="f49ec580-edbb-4a91-bd28-89a855bc6197">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	otp: vars.otpValue
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="provide header Response" doc:id="4eedafb6-dd79-435a-8c1b-0ff306945d11" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"msg": "please provide your emailId in header to genrate-OTP"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="otp-verification-projectFlow1" doc:id="7fe676ec-2ab6-4979-b539-11adcb5924f6" >
+		<http:listener doc:name="POST/validate-otp" doc:id="f5750a1d-0abf-43fb-afda-98beae38ab30" config-ref="HTTP_Listener_config" path="/validate-otp" allowedMethods="POST"/>
+		<set-variable value="#[payload.otp]" doc:name="otp" doc:id="e9845c7d-ad03-45de-a9dd-f37c2cd08c62" variableName="otp"/>
+		<set-variable value="#[attributes.headers.emailId]" doc:name="emailId" doc:id="a1897a1b-783a-4563-ab64-f68d6019b487" variableName="emailId"/>
+		<try doc:name="Try" doc:id="4fd68e05-4054-4b8d-ab12-e99e4a8ac8d8" >
+			<os:retrieve doc:name="Retrieve using key emailId" doc:id="fc4b356c-ee78-4c3c-be01-3685520a7d57" key="#[vars.emailId]" objectStore="Object_store" />
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="e7f07a60-d48a-432a-a5ca-24b8e3ec0a25" >
+					<logger level="INFO" doc:name="value is null in object store" doc:id="a0b89e83-a279-4b3a-b37c-b6d6b88a55c0" message="value is null in object store"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<choice doc:name="otp matching" doc:id="2209eee2-193d-4e8b-8907-08a09f717349" >
+			<when expression="#[payload == vars.otp]">
+				<async doc:name="Async" doc:id="b037c129-7b50-458b-b2ab-5fda987048bd" >
+					<os:remove doc:name="Remove verified otp" doc:id="b8443572-dd28-483b-8b56-26a8b9718685" key="#[vars.emailId]" objectStore="Object_store" />
+				</async>
+				<ee:transform doc:name="otp verified" doc:id="7a9c55f8-4ade-447f-999d-f07b6d0d91ee">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{ msg: "otp verified"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="incorrect otp" doc:id="7609eb5a-7718-4c61-805e-b434c6c60349" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{msg: "OTP is either incorrect or Expired, please re-generate OTP"}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

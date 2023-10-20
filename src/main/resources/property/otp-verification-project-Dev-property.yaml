@@ -1,0 +1,7 @@
+HTTPListener:
+  port: "8082"
+  timeout: "30000"
+  TLS:
+    keyPassword: "![hRY28R7GMmu61gSpeZ4v9A==]"
+    password: "![hRY28R7GMmu61gSpeZ4v9A==]"
+    

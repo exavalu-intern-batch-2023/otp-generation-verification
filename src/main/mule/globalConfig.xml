@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="6b8c6c03-f5ff-4f93-83b4-b9e678321501" >
+		<http:listener-connection protocol="HTTPS" host="0.0.0.0" port="${HTTPListener.port}" readTimeout="${HTTPListener.timeout}">
+			<tls:context >
+				<tls:key-store type="jks" path="keystore.jks" keyPassword="${secure::HTTPListener.TLS.keyPassword}" password="${secure::HTTPListener.TLS.password}"/>
+			</tls:context>
+		</http:listener-connection>
+	</http:listener-config>
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="2292f677-b3fb-4da9-9d18-e6776cece2a4" entryTtl="5" entryTtlUnit="MINUTES"/>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="71c7eaba-454d-4d54-8794-675423d51220" key="${key.property}" file="property\otp-verification-project-${env}-property.yaml"/>
+	<configuration-properties doc:name="Configuration properties" doc:id="2c6f1b83-9446-4d24-acf3-b00279cdfdd2" file="property\otp-verification-project-${env}-property.yaml" />
+</mule>
